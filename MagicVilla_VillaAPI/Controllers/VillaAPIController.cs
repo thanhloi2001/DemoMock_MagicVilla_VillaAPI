@@ -19,7 +19,7 @@ namespace MagicVilla_VillaAPI.Controllers
     {
         protected APIResponse _response;
         private readonly IVillaRepository _dbVilla;
-        private readonly ApplicationDbContext _db;
+        //private readonly ApplicationDbContext _db;
         private readonly IMapper _mapper;
 
         public VillaAPIController(IVillaRepository dbVilla, IMapper mapper)
@@ -43,6 +43,7 @@ namespace MagicVilla_VillaAPI.Controllers
         //    return Ok(_db.Villas.ToList());
         //}
         [HttpGet]
+        
         [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<APIResponse>> GetVillas()
@@ -144,7 +145,7 @@ namespace MagicVilla_VillaAPI.Controllers
                 await _dbVilla.CreateAsync(model);
                 _response.StatusCode = HttpStatusCode.Created;
                 _response.IsSuccess = true;
-                return CreatedAtRoute("GetVilla", new { id = model.Id }, model);
+                return CreatedAtAction(nameof(GetVilla), new { id = model.Id }, model);
             }
             catch (Exception ex)
             {
@@ -240,44 +241,50 @@ namespace MagicVilla_VillaAPI.Controllers
         [HttpPatch("id:int", Name = "UpdatePartialVilla")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> UpdatePartialVilla(int id, JsonPatchDocument<VillaUpdateDTO> patchDTO)
+        public async Task<ActionResult<APIResponse>> UpdatePartialVilla(int id, JsonPatchDocument<VillaUpdateDTO> patchDTO)
         {
-            if (patchDTO == null || id == 0)
-            {
-                return BadRequest();
-            }
-            //var villa = VillaStore.villaList.FirstOrDefault(u => u.Id == id);
-            //var villa = await _db.Villas.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
-            var villa = await _dbVilla.GetAsync(u => u.Id == id,tracked:false);
-            VillaUpdateDTO villaDTO = _mapper.Map<VillaUpdateDTO>(villa);
-            ////VillaDTO villaDTO = new()
-            ////{
-            ////    Amenity = villa.Amenity,
-            ////    Details = villa.Details,
-            ////    Id = villa.Id,
-            ////    ImageUrl = villa.ImageUrl,
-            ////    Name = villa.Name,
-            ////    Occupancy = villa.Occupancy,
-            ////    Rate = villa.Rate,
-            ////    Sqft = villa.Sqft
-            ////};
-            if (villa == null)
-            {
-                return BadRequest();
-            }
-            patchDTO.ApplyTo(villaDTO, ModelState);   
-            Villa model = _mapper.Map<Villa>(villaDTO);
+            try {
+                if (patchDTO == null || id == 0)
+                {
+                    return BadRequest();
+                }
+                //var villa = VillaStore.villaList.FirstOrDefault(u => u.Id == id);
+                //var villa = await _db.Villas.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+                var villa = await _dbVilla.GetAsync(u => u.Id == id, tracked: false);
+                VillaUpdateDTO villaDTO = _mapper.Map<VillaUpdateDTO>(villa);
+                ////VillaDTO villaDTO = new()
+                ////{
+                ////    Amenity = villa.Amenity,
+                ////    Details = villa.Details,
+                ////    Id = villa.Id,
+                ////    ImageUrl = villa.ImageUrl,
+                ////    Name = villa.Name,
+                ////    Occupancy = villa.Occupancy,
+                ////    Rate = villa.Rate,
+                ////    Sqft = villa.Sqft
+                ////};
+                if (villa == null)
+                {
+                    return BadRequest();
+                }
+                patchDTO.ApplyTo(villaDTO, ModelState);
+                Villa model = _mapper.Map<Villa>(villaDTO);
 
-            //_db.Villas.Update(model);
-            //await _db.SaveChangesAsync();
-            await _dbVilla.UpdateAsync(model);
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
+                //_db.Villas.Update(model);
+                //await _db.SaveChangesAsync();
+                await _dbVilla.UpdateAsync(model);
+                _response.StatusCode = HttpStatusCode.NoContent;
+                _response.IsSuccess = true;
+                //return NoContent();
+                return Ok(_response);
             }
-            return NoContent();
-            
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessages
+                    = new List<string>() { ex.ToString() };
+            }
+            return _response;
         }
 
     }
